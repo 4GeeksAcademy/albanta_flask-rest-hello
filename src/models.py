@@ -2,13 +2,15 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-class User(db.Model):
+class Users(db.Model):  
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(80), unique=False, nullable=False)
-    is_active = db.Column(db.Boolean(), unique=False, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+    is_active = db.Column(db.Boolean(), nullable=False)
+
+    favorites = db.relationship("Favorites", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<User {self.email}>'
@@ -19,8 +21,7 @@ class User(db.Model):
             "email": self.email,
         }
 
-
-class People(db.Model):
+class People(db.Model):  
     __tablename__ = 'people'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -32,6 +33,8 @@ class People(db.Model):
     skin_color = db.Column(db.String(20), nullable=True)
     eye_color = db.Column(db.String(20), nullable=True)
     birth_year = db.Column(db.String(10), nullable=True)
+
+    favorites = db.relationship("Favorites", back_populates="people", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<People {self.name}>'
@@ -49,8 +52,7 @@ class People(db.Model):
             "birth_year": self.birth_year,
         }
 
-
-class Planets(db.Model):
+class Planets(db.Model):  
     __tablename__ = 'planets'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -61,6 +63,8 @@ class Planets(db.Model):
     diameter = db.Column(db.String(20), nullable=True)
     rotation_period = db.Column(db.String(20), nullable=True)
     orbital_period = db.Column(db.String(20), nullable=True)
+
+    favorites = db.relationship("Favorites", back_populates="planet", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<Planets {self.name}>'
@@ -77,24 +81,25 @@ class Planets(db.Model):
             "orbital_period": self.orbital_period,
         }
 
-
-class Favorites(db.Model):
+class Favorites(db.Model):  
     __tablename__ = 'favorites'
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    favorite_type = db.Column(db.String(20), nullable=False)  
-    favorite_id = db.Column(db.Integer, nullable=False)
+    planet_id = db.Column(db.Integer, db.ForeignKey('planets.id'), nullable=True)
+    people_id = db.Column(db.Integer, db.ForeignKey('people.id'), nullable=True)
 
-    user = db.relationship('User', backref='favorites', lazy=True)
+    user = db.relationship("Users", back_populates="favorites")
+    planet = db.relationship("Planets", back_populates="favorites")
+    people = db.relationship("People", back_populates="favorites")
 
     def __repr__(self):
-        return f'<Favorites {self.favorite_type} {self.favorite_id} for User {self.user_id}>'
+        return f'<Favorites User:{self.user_id} Planet:{self.planet_id} People:{self.people_id}>'
 
     def serialize(self):
         return {
             "id": self.id,
             "user_id": self.user_id,
-            "favorite_type": self.favorite_type,
-            "favorite_id": self.favorite_id,
+            "planet": self.planet.serialize() if self.planet else None,
+            "people": self.people.serialize() if self.people else None,
         }
